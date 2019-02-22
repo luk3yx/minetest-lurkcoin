@@ -16,6 +16,12 @@ local baseurl = 'https://nz.xeroxirc.net:7000/v2'
 lurkcoin.server_name = minetest.settings:get('lurkcoin.username')
 local token          = minetest.settings:get('lurkcoin.token')
 
+-- Make sure lurkcoin.server_name exists
+if not lurkcoin.server_name then
+    lurkcoin.server_name = '<unknown>'
+    minetest.log('warning', 'lurkcoin has no server name set!')
+end
+
 -- Make sure the HTTP API exists
 local http = ...
 if not http then
@@ -37,7 +43,7 @@ local function get(url, data, callback)
             code      = 500,
             data      = 'ERROR: The lurkcoin mod is not in secure.http_mods!'
         })
-    elseif not data.name or not data.token then
+    elseif not lurkcoin.server_name or not token then
         return callback({
             completed = true,
             succeeded = false,
@@ -66,7 +72,7 @@ local function get(url, data, callback)
             res.data = 'ERROR: Could not connect to lurkcoin!'
         elseif res.code == 401 or res.code == 418 then
             minetest.log('warning', '[lurkcoin] Invalid username or API token!')
-            lurkcoin.server_name, token = '', nil
+            lurkcoin.server_name, token = '<unknown>', nil
         elseif res.code == 200 and res.data:sub(1, 7) == 'ERROR: ' then
             res.code = 501
         end
