@@ -180,6 +180,7 @@ if minetest.get_modpath('atm') and rawget(_G, 'atm') and atm.balance then
         end,
         setbal = function(name, bal)
             atm.balance[name] = bal
+            atm.saveaccounts()
         end
     })
 elseif minetest.get_modpath('bank_accounts') and rawget(_G, 'accounts') and
