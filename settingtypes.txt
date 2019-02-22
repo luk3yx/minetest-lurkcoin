@@ -1,0 +1,2 @@
+lurkcoin.username (lurkcoin username) string
+lurkcoin.token (lurkcoin API token) string
