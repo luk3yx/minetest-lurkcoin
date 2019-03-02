@@ -1,5 +1,6 @@
 atm?
 bank_accounts?
+cloaking?
 currency?
 default?
 economy?

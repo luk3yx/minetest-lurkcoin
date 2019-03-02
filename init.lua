@@ -26,25 +26,27 @@ dofile(modpath .. '/atm-core.lua')
 -- Load the ATM blocks
 dofile(modpath .. '/atm-nodes.lua')
 
--- Tweak minetest.log for extra security
-table.insert(minetest.registered_on_chat_messages, 1, function(name, msg)
-    if msg:find('[\r\n]') then
-        minetest.chat_send_player(name,
-            'Error sending message: https://xkcd.com/327')
-        return true
-    end
-end)
+-- Tweak minetest.log for extra security, unless cloaking already has.
+if not minetest.get_modpath('cloaking') or not cloaking.version then
+    table.insert(minetest.registered_on_chat_messages, 1, function(name, msg)
+        if msg:find('[\r\n]') then
+            minetest.chat_send_player(name,
+                'Error sending message: https://xkcd.com/327')
+            return true
+        end
+    end)
 
-local log = minetest.log
-function minetest.log(level, text)
-    level = level:gsub('[\r\n]', '  ')
-    if text then
-        text  = text:gsub('[\r\n]', '  ')
-    else
-        text  = level
-        level = 'none'
+    local log = minetest.log
+    function minetest.log(level, text)
+        level = level:gsub('[\r\n]', '  ')
+        if text then
+            text  = text:gsub('[\r\n]', '  ')
+        else
+            text  = level
+            level = 'none'
+        end
+        return log(level, text)
     end
-    return log(level, text)
 end
 
 -- Display loaded message
