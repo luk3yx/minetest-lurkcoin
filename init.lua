@@ -37,8 +37,13 @@ end)
 
 local log = minetest.log
 function minetest.log(level, text)
-    if level then level = level:gsub('[\r\n]', '  ') end
-    if text  then text  =  text:gsub('[\r\n]', '  ') end
+    level = level:gsub('[\r\n]', '  ')
+    if text then
+        text  = text:gsub('[\r\n]', '  ')
+    else
+        text  = level
+        level = 'none'
+    end
     return log(level, text)
 end
 
