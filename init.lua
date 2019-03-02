@@ -26,6 +26,22 @@ dofile(modpath .. '/atm-core.lua')
 -- Load the ATM blocks
 dofile(modpath .. '/atm-nodes.lua')
 
+-- Tweak minetest.log for extra security
+table.insert(minetest.registered_on_chat_messages, 1, function(name, msg)
+    if msg:find('[\r\n]') then
+        minetest.chat_send_player(name,
+            'Error sending message: https://xkcd.com/327')
+        return true
+    end
+end)
+
+local log = minetest.log
+function minetest.log(level, text)
+    if level then level = level:gsub('[\r\n]', '  ') end
+    if text  then text  =  text:gsub('[\r\n]', '  ') end
+    return log(level, text)
+end
+
 -- Display loaded message
 minetest.log('action', '[lurkcoin] Loaded on server "' ..
     lurkcoin.server_name .. '".')
