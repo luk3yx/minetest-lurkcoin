@@ -27,7 +27,7 @@ dofile(modpath .. '/atm-core.lua')
 dofile(modpath .. '/atm-nodes.lua')
 
 -- Tweak minetest.log for extra security, unless cloaking already has.
-if not minetest.get_modpath('cloaking') then
+if not minetest.get_modpath('cloaking') or not cloaking.hide_player then
     table.insert(minetest.registered_on_chat_messages, 1, function(name, msg)
         if msg:find('[\r\n]') then
             minetest.chat_send_player(name,
