@@ -81,7 +81,6 @@ function formspecs.pay(name, fields, guessed_amount)
             if exc < 0 then
                 lurkcoin.get_exchange_rate(fields.amount, fields.server or
                         lurkcoin.server_name, function(data)
-                    print('Exchange rate callback with data ' .. tostring(data))
                     if not data then
                         fields._err = 'That server does not exist!'
                     end
