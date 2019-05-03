@@ -16,7 +16,9 @@ spaces.
 
 The following lurkcoin-specific functions and variables exist:
 
- - `lurkcoin.exchange_rate`: The exchange rate, *do not modify this!*
+ - `lurkcoin.exchange_rate`: The raw exchange rate, *do not modify this!*
+ - `lurkcoin.get_exchange_rate(amount, to, callback)`: Get an exchange rate
+    from this server.
  - `lurkcoin.pay(from, to, server, amount, callback)`: Makes `from` pay someone
     `amount`cr, and calls `callback` on success/faliure. `callback` should have two
     parameters, `success` and `msg`.

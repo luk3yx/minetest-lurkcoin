@@ -52,7 +52,7 @@ end
 local withdrawls = false
 
 -- Payment screen
-function formspecs.pay(name, fields)
+function formspecs.pay(name, fields, guessed_amount)
     fields = fields or {}
     local formspec =
         'field[0.8,3.5;7,1;user;User to pay;' .. e(fields.user or '') .. ']' ..
@@ -73,10 +73,28 @@ function formspecs.pay(name, fields)
         formspec = formspec ..
             'label[0.5,7;Please confirm the above values.'
         if fields.server ~= lurkcoin.server_name then
-            local r = (tonumber(fields.amount) or 0) / lurkcoin.exchange_rate
-            r = tostring(math.floor(r * 100) / 100)
-            formspec = formspec ..
-                '\n' .. fields.amount .. 'cr is equal to \xc2\xa4' .. r .. '.'
+            local exc = -1
+            if type(fields._exchange_rate) == 'number' then
+                exc = fields._exchange_rate
+            end
+
+            if exc < 0 then
+                lurkcoin.get_exchange_rate(fields.amount, fields.server or
+                        lurkcoin.server_name, function(data)
+                    print('Exchange rate callback with data ' .. tostring(data))
+                    if not data then
+                        fields._err = 'That server does not exist!'
+                    end
+                    fields._exchange_rate = data
+                    return lurkcoin.show_atm(name, 'pay', fields)
+                end)
+                return formspec .. '\n' .. fields.amount .. 'cr is equal to' ..
+                    ' ...\n\n(Calculating...)]'
+            end
+
+            exc = tostring(math.floor(exc * 100) / 100)
+            formspec = formspec .. '\n' .. fields.amount .. 'cr is ' ..
+                'equal to \xc2\xa4' .. exc .. '.'
         end
         formspec = formspec .. ']' ..
             'button[0.5,8;3.5,1;payuser;Cancel]' ..

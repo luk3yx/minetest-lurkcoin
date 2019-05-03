@@ -130,6 +130,25 @@ end
 -- Start syncing once the game is loaded.
 minetest.after(0, sync)
 
+-- Get an exchange rate
+function lurkcoin.get_exchange_rate(amount, to, callback)
+    assert(callback)
+    amount = amount and tonumber(amount)
+    if not amount or amount ~= amount then return callback(nil) end
+
+    get('exchange_rates', {
+        from    = lurkcoin.server_name,
+        to      = to or 'lurkcoin',
+        amount  = tostring(amount),
+    }, function(res)
+        if res.code == 200 then
+            local amount = tonumber(res.data)
+            if amount == amount then return callback(amount) end
+        end
+        return callback(nil)
+    end)
+end
+
 -- Pay a user (cross-server)
 function lurkcoin.pay(from, to, server, amount, callback)
     assert(type(amount) == 'number' and callback)
@@ -159,7 +178,8 @@ function lurkcoin.pay(from, to, server, amount, callback)
     return get('pay', {
         target = to,
         server = server,
-        amount = tostring(amount / lurkcoin.exchange_rate)
+        amount = tostring(amount),
+        local_currency = 'true'
     }, function(res)
         if res.code ~= 200 then
             lurkcoin.bank.add(from, amount, 'Reverting failed transaction.')
