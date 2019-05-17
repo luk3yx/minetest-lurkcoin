@@ -245,9 +245,12 @@ elseif rawget(_G, 'money') then
             mod         = 'money2',
             user_exists = money.has_credit,
             getbal      = money.get,
-            setbal      = function(...)
-                money.set(...)
-                return true
+            setbal      = function(name, ...)
+                if money.has_credit(name) then
+                    money.set(name, ...)
+                    return true
+                end
+                return false
             end,
             pay         = function(from, to, amount)
                 local err = money.transfer(from, to, amount)

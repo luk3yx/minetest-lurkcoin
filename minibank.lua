@@ -8,12 +8,21 @@ local storage = minetest.get_mod_storage()
 
 -- Use mod storage for getbal() and setbal().
 -- Store as strings because of weird bugs when using floats.
-local function getbal(name)
+local function rawgetbal(name)
     return tonumber(storage:get_string('minibank-' .. name))
 end
 
+local function getbal(name)
+    local lname = name:lower()
+    if lname ~= name and rawgetbal(name) ~= nil then
+        setbal(lname, rawgetbal(name))
+        storage:set_string(name, '')
+    end
+    return rawgetbal(lname)
+end
+
 local function setbal(name, balance)
-    storage:set_string('minibank-' .. name, tostring(balance))
+    storage:set_string('minibank-' .. name:lower(), tostring(balance))
 end
 
 -- Create an empty account for new players
