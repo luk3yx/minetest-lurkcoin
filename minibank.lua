@@ -12,16 +12,18 @@ local function rawgetbal(name)
     return tonumber(storage:get_string('minibank-' .. name))
 end
 
+local setbal
+
 local function getbal(name)
     local lname = name:lower()
     if lname ~= name and rawgetbal(name) ~= nil then
-        setbal(lname, rawgetbal(name))
+        setbal(lname, rawgetbal(name) + (rawgetbal(lname) or 0))
         storage:set_string(name, '')
     end
     return rawgetbal(lname)
 end
 
-local function setbal(name, balance)
+function setbal(name, balance)
     storage:set_string('minibank-' .. name:lower(), tostring(balance))
 end
 
