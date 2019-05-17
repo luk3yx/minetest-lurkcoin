@@ -2,7 +2,7 @@
 
 Adds (cross-server) ATMs to Minetest.
 
-**This mod is currently in beta**, *and this README probably makes no sense.*
+**This mod is currently in beta**, and this README probably needs rewriting.
 
 ## How to use/install
 
