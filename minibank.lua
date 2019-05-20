@@ -18,7 +18,7 @@ local function getbal(name)
     local lname = name:lower()
     if lname ~= name and rawgetbal(name) ~= nil then
         setbal(lname, rawgetbal(name) + (rawgetbal(lname) or 0))
-        storage:set_string(name, '')
+        storage:set_string('minibank-' .. name, '')
     end
     return rawgetbal(lname)
 end
