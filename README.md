@@ -12,6 +12,21 @@ minetest.conf to allow cross-server transactions. The minetest.conf settings
 you get from the lurkcoin website, and should not contain leading or trailing
 spaces.
 
+## What is a "lurkcoin"?
+
+lurkcoin is a cross-server (possibly cross-game in the future) money transfer
+system.
+
+If you're interested in how it works, ask/nag me to finish this FAQ.
+
+### But what if someone on one server cheats with creative?
+
+There are limits, and exchange rates are updated in realtime (and change
+depending on how much you are trying to transfer) to try and prevent creative
+money and imbalanced economies. There are also logs of cross-server
+transactions, if you suspect fraud, PM me on IRC if possible (Freenode or
+xeroxIRC).
+
 ## API
 
 The following lurkcoin-specific functions and variables exist:
