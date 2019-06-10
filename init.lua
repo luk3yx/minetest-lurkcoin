@@ -26,7 +26,7 @@ dofile(modpath .. '/atm-core.lua')
 -- Load the ATM blocks
 dofile(modpath .. '/atm-nodes.lua')
 
--- Tweak minetest.log for extra security, unless cloaking already has.
+-- Backport https://github.com/minetest/minetest/pull/8420 if required
 if not minetest.get_modpath('cloaking') or not cloaking.hide_player then
     table.insert(minetest.registered_on_chat_messages, 1, function(name, msg)
         if msg:find('[\r\n]') then
