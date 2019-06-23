@@ -1,8 +1,8 @@
 # The official Minetest lurkcoin mod
 
-Adds (cross-server) ATMs to Minetest.
+Adds (cross-server) ATMs to Minetest. **Transactions may take up to 5 minutes to appear.**
 
-**This mod is currently in beta**, and this README probably needs rewriting.
+This mod is currently in beta, and this README probably needs rewriting.
 
 ## How to use/install
 
