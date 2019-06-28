@@ -24,7 +24,8 @@ local function getbal(name)
 end
 
 function setbal(name, balance)
-    storage:set_string('minibank-' .. name:lower(), tostring(balance))
+    storage:set_string('minibank-' .. name:lower(),
+        tostring(math.floor(balance * 100) / 100))
 end
 
 -- Create an empty account for new players
