@@ -118,10 +118,10 @@ end
 if minetest.get_modpath('currency') then
     formspecs.main =
         'button[0.5,3.25;7,1;deposit;Deposit money]' ..
-        'field[0.8,4.85;6,1;withdraw;Withdraw money (in Mg);5.00]' ..
+        'field[0.8,4.87;6,1;withdraw;Withdraw money (in Mg);5.00]' ..
         'field_close_on_enter[withdraw;false]' ..
         'button[6.5,4.55;1,1;wd;Next >]' ..
-        'field[0.8,6.1;6,1;user;Pay someone;]' ..
+        'field[0.8,6.12;6,1;user;Pay someone;]' ..
         'field_close_on_enter[user;false]' ..
         'button[6.5,5.8;1,1;payuser;Next >]' ..
         'button_exit[0.5,8;7,1;quit;Quit]'
