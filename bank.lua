@@ -21,7 +21,7 @@ function lurkcoin.change_bank(bank)
 
     -- Make sure "getbal" has a consistent return result and add user_exists if
     --  it doesn't.
-    if type(lurkcoin.bank.getbal('\xc2\xa4 Fake user')) ~= 'number' then
+    if type(lurkcoin.bank.getbal('\194\164 Fake user')) ~= 'number' then
         local getbal = lurkcoin.bank.getbal
         if not lurkcoin.bank.user_exists then
             function lurkcoin.bank.user_exists(name)

@@ -29,7 +29,7 @@ local function get_formspec(name, page, params)
             e(lurkcoin.bank.getbal(name)) .. 'cr.]' ..
         'image_button[2,0.55;4,0.5;default_dirt.png^\\[colorize:#343434;y;' ..
             'Welcome to a ' .. e(lurkcoin.server_name) .. ' ATM!]'          ..
-        'label[0.5,2.25;Exchange rate: \xc2\xa41.00 is equal to '           ..
+        'label[0.5,2.25;Exchange rate: \194\1641.00 is equal to '           ..
             e(lurkcoin.exchange_rate) .. 'cr.]'                             ..
         'image_button[1.75,1.05;4.5,0.5;default_dirt.png^\\[colorize:'      ..
             '#343434;y; Your account: ' .. e(name) .. ']'                   ..
@@ -93,7 +93,7 @@ function formspecs.pay(name, fields, guessed_amount)
 
             exc = tostring(math.floor(exc * 100) / 100)
             formspec = formspec .. '\n' .. fields.amount .. 'cr is ' ..
-                'equal to \xc2\xa4' .. exc .. '.'
+                'equal to \194\164' .. exc .. '.'
         end
         formspec = formspec .. ']' ..
             'button[0.5,8;3.5,1;payuser;Cancel]' ..
