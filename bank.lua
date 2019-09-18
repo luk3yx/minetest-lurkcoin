@@ -10,36 +10,32 @@ function lurkcoin.change_bank(bank)
     assert(type(bank) == 'table')
     assert(bank.getbal and bank.setbal)
 
-    -- Set lurkcoin.bank to the new bank
-    lurkcoin.bank = bank
-    bank = nil
-
     -- Get the current mod name
-    if not lurkcoin.bank.mod then
-        lurkcoin.bank.mod = minetest.get_current_modname() or '???'
+    if not bank.mod then
+        bank.mod = minetest.get_current_modname() or '???'
     end
 
     -- Make sure "getbal" has a consistent return result and add user_exists if
     --  it doesn't.
-    if type(lurkcoin.bank.getbal('\194\164 Fake user')) ~= 'number' then
-        local getbal = lurkcoin.bank.getbal
-        if not lurkcoin.bank.user_exists then
-            function lurkcoin.bank.user_exists(name)
+    if type(bank.getbal('\194\164 Fake user')) ~= 'number' then
+        local getbal = bank.getbal
+        if not bank.user_exists then
+            function bank.user_exists(name)
                 return getbal(name) and true or false
             end
         end
 
-        function lurkcoin.bank.getbal(name)
+        function bank.getbal(name)
             return getbal(name) or 0
         end
     end
 
-    assert(lurkcoin.bank.user_exists)
+    assert(bank.user_exists)
 
     -- Make sure "setbal" has a consistent return value.
     do
-        local setbal = lurkcoin.bank.setbal
-        function lurkcoin.bank.setbal(name, amount, reason)
+        local setbal = bank.setbal
+        function bank.setbal(name, amount, reason)
             if type(amount) ~= 'number' or amount ~= amount then
                 return false
             end
@@ -53,9 +49,9 @@ function lurkcoin.change_bank(bank)
     end
 
     -- Make sure "changebal" exists
-    if not lurkcoin.bank.changebal then
-        if lurkcoin.bank.add and lurkcoin.bank.subtract then
-            function lurkcoin.bank.changebal(name, amount, reason)
+    if not bank.changebal then
+        if bank.add and bank.subtract then
+            function bank.changebal(name, amount, reason)
                 if amount == 0 then
                     return true
                 elseif type(amount) ~= 'number' or amount ~= amount then
@@ -63,58 +59,56 @@ function lurkcoin.change_bank(bank)
                 end
 
                 if amount > 0 then
-                    return lurkcoin.bank.add(name, amount, reason)
+                    return bank.add(name, amount, reason)
                 else
-                    return lurkcoin.bank.subtract(name, amount, reason)
+                    return bank.subtract(name, amount, reason)
                 end
             end
         else
-            function lurkcoin.bank.changebal(name, amount, reason)
+            function bank.changebal(name, amount, reason)
                 if amount == 0 then
                     return true
                 elseif type(amount) ~= 'number' or amount ~= amount then
-                    print('Not a number')
                     return false
                 end
 
-                local resulting_bal = lurkcoin.bank.getbal(name) + amount
+                local resulting_bal = bank.getbal(name) + amount
                 if resulting_bal < 0 then
-                    print('Cannot afford to do that')
                     return false
                 end
 
-                return lurkcoin.bank.setbal(name, resulting_bal, reason)
+                return bank.setbal(name, resulting_bal, reason)
             end
         end
     end
 
     -- Make sure "add" exists
-    if not lurkcoin.bank.add then
-        function lurkcoin.bank.add(name, amount, reason)
+    if not bank.add then
+        function bank.add(name, amount, reason)
             if amount < 0 then
                 return false
             end
 
-            return lurkcoin.bank.changebal(name, amount, reason)
+            return bank.changebal(name, amount, reason)
         end
     end
 
     -- Make sure "subtract" exists
-    if not lurkcoin.bank.subtract then
-        function lurkcoin.bank.subtract(name, amount, reason)
+    if not bank.subtract then
+        function bank.subtract(name, amount, reason)
             if amount < 0 then
                 return false
             end
 
-            return lurkcoin.bank.changebal(name, 0 - amount, reason)
+            return bank.changebal(name, 0 - amount, reason)
         end
     end
 
     -- Make sure "pay" exists, and if so, make sure it has consistent return
     --   values.
-    if lurkcoin.bank.pay then
-        local pay = lurkcoin.bank.pay
-        function lurkcoin.bank.pay(from, to, amount)
+    if bank.pay then
+        local pay = bank.pay
+        function bank.pay(from, to, amount)
             if type(amount) ~= 'number' or amount ~= amount then
                 return false, 'Invalid number!'
             end
@@ -127,30 +121,30 @@ function lurkcoin.change_bank(bank)
             end
         end
     else
-        function lurkcoin.bank.pay(from, to, amount)
+        function bank.pay(from, to, amount)
             if type(amount) == 'number' then
                 amount = math.floor(amount * 100) / 100
             end
 
-            if not lurkcoin.bank.user_exists(from) or not
-                   lurkcoin.bank.user_exists(to) then
+            if not bank.user_exists(from) or not
+                   bank.user_exists(to) then
                 return false, 'The specified user does not exist!'
             elseif type(amount) ~= 'number' or amount ~= amount or
               amount <= 0 then
                 return false, 'Invalid number!'
-            elseif lurkcoin.bank.getbal(from) - amount < 0 then
+            elseif bank.getbal(from) - amount < 0 then
                 return false, 'You cannot afford to do that!'
             end
 
             local success = false
-            if lurkcoin.bank.subtract(from, amount, 'Transaction to ' ..
+            if bank.subtract(from, amount, 'Transaction to ' ..
               to) then
-                success = lurkcoin.bank.add(to, amount, 'Transaction from ' ..
+                success = bank.add(to, amount, 'Transaction from ' ..
                     from)
 
                 -- Revert failed transactions
                 if not success and success ~= nil then
-                    lurkcoin.bank.add(from, amount,
+                    bank.add(from, amount,
                         'Reverting failed transaction.')
                 end
             end
@@ -163,6 +157,9 @@ function lurkcoin.change_bank(bank)
             return false, 'Error processing transaction!'
         end
     end
+
+    -- Set lurkcoin.bank to the new bank.
+    lurkcoin.bank = bank
 end
 
 -- Built-in mod integrations
