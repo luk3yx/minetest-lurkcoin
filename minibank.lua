@@ -40,6 +40,6 @@ end)
 
 -- Let bank.lua add everything else.
 lurkcoin.change_bank({
-    getbal      = getbal,
-    setbal      = setbal
+    getbal = getbal,
+    setbal = setbal
 })

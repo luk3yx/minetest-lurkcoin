@@ -181,7 +181,7 @@ if minetest.get_modpath('atm') and rawget(_G, 'atm') and atm.balance then
         end
     })
 elseif minetest.get_modpath('bank_accounts') and rawget(_G, 'accounts') and
-  accounts.balance and accounts.pin and accounts.credit then
+        accounts.balance and accounts.pin and accounts.credit then
     -- https://github.com/Tmanyo/bank_accounts
 
     lurkcoin.change_bank({
@@ -194,7 +194,7 @@ elseif minetest.get_modpath('bank_accounts') and rawget(_G, 'accounts') and
         end
     })
 elseif minetest.get_modpath('economy') and rawget(_G, 'economy') and
-  economy.balance and economy.accountlog then
+        economy.balance and economy.accountlog then
     -- https://github.com/orwell96/economy
     -- economy.moneyof() automatically adds non-existent entries, therefore it
     --  is not used by default.
@@ -239,17 +239,17 @@ elseif rawget(_G, 'money') then
     elseif minetest.get_modpath('money2') and money.get then
         -- money.add and money.dec have a different return value system.
         lurkcoin.change_bank({
-            mod         = 'money2',
+            mod = 'money2',
             user_exists = money.has_credit,
-            getbal      = money.get,
-            setbal      = function(name, ...)
+            getbal = money.get,
+            setbal = function(name, ...)
                 if money.has_credit(name) then
                     money.set(name, ...)
                     return true
                 end
                 return false
             end,
-            pay         = function(from, to, amount)
+            pay = function(from, to, amount)
                 local err = money.transfer(from, to, amount)
                 return not err, err
             end
