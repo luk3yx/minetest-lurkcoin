@@ -130,7 +130,7 @@ function lurkcoin.change_bank(bank)
                    bank.user_exists(to) then
                 return false, 'The specified user does not exist!'
             elseif type(amount) ~= 'number' or amount ~= amount or
-              amount <= 0 then
+                    amount <= 0 then
                 return false, 'Invalid number!'
             elseif bank.getbal(from) - amount < 0 then
                 return false, 'You cannot afford to do that!'
@@ -138,7 +138,7 @@ function lurkcoin.change_bank(bank)
 
             local success = false
             if bank.subtract(from, amount, 'Transaction to ' ..
-              to) then
+                    to) then
                 success = bank.add(to, amount, 'Transaction from ' ..
                     from)
 
