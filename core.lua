@@ -36,18 +36,21 @@ lurkcoin.user_agent = 'Minetest ' .. minetest.get_version().string ..
 
 -- Download functions
 local function get(url, data, callback)
+    -- To prevent race conditions, these callbacks wait until at least the next
+    --  globalstep.
     if not data then
         data = {}
     elseif not http then
-        return callback({
+        minetest.after(0, callback, {
             completed = true,
             succeeded = false,
             timeout   = true,
             code      = 500,
             data      = 'ERROR: The lurkcoin mod is not in secure.http_mods!'
         })
+        return
     elseif not lurkcoin.server_name or not token then
-        return callback({
+        minetest.after(0, callback, {
             completed = true,
             succeeded = false,
             timeout   = true,
@@ -55,6 +58,7 @@ local function get(url, data, callback)
             data      = 'ERROR: The lurkcoin mod does not have (correct) ' ..
                 'account credentials!'
         })
+        return
     end
 
     data.name  = lurkcoin.server_name
@@ -146,9 +150,15 @@ function lurkcoin.get_exchange_rate(amount, to, callback)
     }, function(res)
         if res.code == 200 then
             local amount = tonumber(res.data)
-            if amount == amount then return callback(amount) end
+            if amount == amount then return callback(amount, nil) end
         end
-        return callback(nil)
+        local msg
+        if res.code == 502 then
+            msg = 'That server does not exist!'
+        else
+            msg = res.data
+        end
+        return callback(nil, tostring(msg))
     end)
 end
 

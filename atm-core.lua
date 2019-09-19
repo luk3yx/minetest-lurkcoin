@@ -80,9 +80,9 @@ function formspecs.pay(name, fields, guessed_amount)
 
             if exc < 0 then
                 lurkcoin.get_exchange_rate(fields.amount, fields.server or
-                        lurkcoin.server_name, function(data)
+                        lurkcoin.server_name, function(data, msg)
                     if not data then
-                        fields._err = 'That server does not exist!'
+                        fields._err = msg
                     end
                     fields._exchange_rate = data
                     return lurkcoin.show_atm(name, 'pay', fields)
@@ -239,14 +239,18 @@ function lurkcoin.show_atm(name, page, params)
         page, params))
 end
 
-minetest.register_on_player_receive_fields(function(player, formname, fields)
+minetest.register_on_player_receive_fields(function(player, formname, raw)
     if formname ~= 'lurkcoin:atm' then return end
 
     local name = player:get_player_name()
 
-    -- These probably don't need to be deleted.
-    fields._err = nil
-    fields._exchange_rate = nil
+    -- Do a shallow copy in case some other mod relies on "fields" not changing.
+    local fields = {}
+    for k, v in pairs(raw) do
+        if type(k) == 'string' and k:sub(1, 1) ~= '_' then
+            fields[k] = v
+        end
+    end
 
     if withdrawls then
         if fields.deposit then
@@ -333,11 +337,11 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
                 lurkcoin.show_atm(name, 'pay', fields)
                 return
             elseif fields.server then
-                fields.server = fields.server:gsub('^ *(.-) *$', '%1')
+                fields.server = fields.server:trim()
             end
 
             if fields.user then
-                fields.user = fields.user:gsub('^ *(.-) *$', '%1')
+                fields.user = fields.user:trim()
             end
 
             if not fields.server or fields.server == '' then
@@ -359,7 +363,6 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
                 return
             end
         end
-        fields._err = nil
         lurkcoin.show_atm(name, 'pay', fields)
     elseif fields.home then
         lurkcoin.show_atm(name, 'main')
