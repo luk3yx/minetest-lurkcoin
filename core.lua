@@ -29,9 +29,12 @@ if not http then
         'Please add lurkcoin to secure.http_mods in minetest.conf.')
 end
 
--- Download functions
+-- This user agent is not strictly required, however I might do something
+--  with the lurkcoin mod version later.
 lurkcoin.user_agent = 'Minetest ' .. minetest.get_version().string ..
     ' (with lurkcoin mod v' .. tostring(lurkcoin.version) .. ')'
+
+-- Download functions
 local function get(url, data, callback)
     if not data then
         data = {}
@@ -155,7 +158,7 @@ function lurkcoin.pay(from, to, server, amount, callback)
 
     -- Run lurkcoin.bank.pay() if this is not a cross-server transaction.
     if not server or server == '' or server:lower() ==
-      lurkcoin.server_name:lower() then
+            lurkcoin.server_name:lower() then
         return callback(lurkcoin.bank.pay(from, to, amount))
     end
 

@@ -39,6 +39,9 @@ The following lurkcoin-specific functions and variables exist:
     parameters, `success` and `msg`.
  - `lurkcoin.server_name`: The account name used to log into lurkcoin.
 
+*Callbacks may or may not be pcall()ed, this is liable to change and you should
+not rely on errors bringing down the server or just being logged.*
+
 ### Bank API
 
 This mod creates a "universal"™ bank API.

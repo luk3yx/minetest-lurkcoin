@@ -170,8 +170,9 @@ if minetest.get_modpath('currency') then
                     if not lurkcoin.bank.add(pname, m, 'Deposit') then
                         player:get_inventory():add_item('main', stack)
                     end
-                    core.log('action', 'Player ' .. pname .. ' deposts ' ..
-                        stack:to_string() .. ' into an ATM.')
+                    core.log('action', 'Player ' .. pname .. ' deposits ' ..
+                        tostring(m) .. 'Mg (' .. stack:to_string() ..
+                        ') into a lurkcoin ATM.')
                 end
             end
             inv:set_list(listname, {})
@@ -239,124 +240,131 @@ function lurkcoin.show_atm(name, page, params)
 end
 
 minetest.register_on_player_receive_fields(function(player, formname, fields)
-    if formname == 'lurkcoin:atm' then
-        local name = player:get_player_name()
+    if formname ~= 'lurkcoin:atm' then return end
 
-        if withdrawls then
-            if fields.deposit then
-                return lurkcoin.show_atm(name, 'deposit')
-            elseif fields.wd then
-                local amount = tonumber(fields.withdraw)
-                if not amount or amount ~= amount or amount <= 0 then
-                    return lurkcoin.show_atm(name, 'error',
-                        'ERROR: Invalid number!')
-                end
-                local bal = lurkcoin.bank.getbal(name)
-                if amount > bal then
-                    return lurkcoin.show_atm(name, 'error',
-                        'ERROR: You cannot afford to do that!')
-                end
+    local name = player:get_player_name()
 
-                local note = false
-                for id, item in pairs(withdrawls) do
-                    if (not note or id > note) and
-                      math.floor(amount / id) * id == amount then
-                        local def = minetest.registered_items[item]
-                        if def and amount / id <= (def.stack_max or 99) then
-                            note = id
-                        end
+    -- These probably don't need to be deleted.
+    fields._err = nil
+    fields._exchange_rate = nil
+
+    if withdrawls then
+        if fields.deposit then
+            return lurkcoin.show_atm(name, 'deposit')
+        elseif fields.wd then
+            local amount = tonumber(fields.withdraw)
+            if not amount or amount ~= amount or amount <= 0 then
+                return lurkcoin.show_atm(name, 'error',
+                    'ERROR: Invalid number!')
+            end
+            local bal = lurkcoin.bank.getbal(name)
+            if amount > bal then
+                return lurkcoin.show_atm(name, 'error',
+                    'ERROR: You cannot afford to do that!')
+            end
+
+            local note = false
+            for id, item in pairs(withdrawls) do
+                if (not note or id > note) and
+                        math.floor(amount / id) * id == amount then
+                    local def = minetest.registered_items[item]
+                    if def and amount / id <= (def.stack_max or 99) then
+                        note = id
                     end
                 end
+            end
 
-                if not note then
-                    return lurkcoin.show_atm(name, 'error',
-                        'ERROR: I cannot store that amount of\nmoney in a ' ..
-                        'single stack of notes/coins!')
+            if not note then
+                return lurkcoin.show_atm(name, 'error',
+                    'ERROR: I cannot store that amount of\nmoney in a ' ..
+                    'single stack of notes/coins!')
+            end
+
+            local stack = ItemStack({
+                name  = withdrawls[note],
+                count = amount / note,
+            })
+            local inv = player:get_inventory()
+            if not inv:room_for_item('main', stack) then
+                return lurkcoin.show_atm(name, 'error',
+                    'ERROR: You do not have enough inventory space!')
+            end
+
+            minetest.log('action', 'Player ' .. name .. ' withdraws ' ..
+                tostring(amount) .. 'Mg (' .. stack:to_string() ..
+                ') from a lurkcoin ATM.')
+            lurkcoin.bank.subtract(name, amount)
+            inv:add_item('main', stack)
+
+            return lurkcoin.show_atm(name, 'success')
+        end
+    end
+
+    if fields.payconfirm and open_atms[name] and open_atms[name].pay then
+        local data = open_atms[name]
+        for k, v in pairs(data) do
+            if type(v) == 'number' then fields[k] = tonumber(fields[k]) end
+            if k ~= 'pay' and fields[k] ~= v then
+                if k ~= 'amount' then
+                    k = 'target ' .. k
                 end
-
-                local stack = ItemStack({
-                    name  = withdrawls[note],
-                    count = amount / note,
-                })
-                local inv = player:get_inventory()
-                if not inv:room_for_item('main', stack) then
-                    return lurkcoin.show_atm(name, 'error',
-                        'ERROR: You do not have enough inventory space!')
-                end
-
-                lurkcoin.bank.subtract(name, amount)
-                inv:add_item('main', stack)
-
-                return lurkcoin.show_atm(name, 'success')
+                fields._err = 'The ' .. k ..
+                    ' was modified before pressing confirm!'
+                lurkcoin.show_atm(name, 'pay', fields)
+                return
             end
         end
-
-        if fields.payconfirm and open_atms[name] and open_atms[name].pay then
-            local data = open_atms[name]
-            for k, v in pairs(data) do
-                if type(v) == 'number' then fields[k] = tonumber(fields[k]) end
-                if k ~= 'pay' and fields[k] ~= v then
-                    if k ~= 'amount' then
-                        k = 'target ' .. k
-                    end
-                    fields._err = 'The ' .. k ..
-                        ' was modified before pressing confirm!'
-                    lurkcoin.show_atm(name, 'pay', fields)
-                    return
-                end
+        lurkcoin.show_atm(name, 'processing')
+        lurkcoin.pay(name, data.user, data.server, data.amount,
+            function(success, msg)
+                local page = success and 'success' or 'error'
+                return lurkcoin.show_atm(name, page, msg)
             end
-            lurkcoin.show_atm(name, 'processing')
-            lurkcoin.pay(name, data.user, data.server, data.amount,
-                function(success, msg)
-                    local page = success and 'success' or 'error'
-                    return lurkcoin.show_atm(name, page, msg)
-                end
-            )
-        elseif fields.payuser or fields.paysubmit or fields.payconfirm then
-            if fields.paysubmit then
-                local amount = tonumber(fields.amount)
-                if not amount or amount ~= amount or amount <= 0 then
-                    fields._err = 'Invalid number!'
-                    lurkcoin.show_atm(name, 'pay', fields)
-                    return
-                elseif lurkcoin.bank.getbal(name) - amount < 0 then
-                    fields._err = 'You cannot afford to do that!'
-                    lurkcoin.show_atm(name, 'pay', fields)
-                    return
-                elseif fields.server then
-                    fields.server = fields.server:gsub('^ *(.-) *$', '%1')
-                end
-
-                if fields.user then
-                    fields.user = fields.user:gsub('^ *(.-) *$', '%1')
-                end
-
-                if not fields.server or fields.server == '' then
-                    fields.server = lurkcoin.server_name
-                end
-
-                open_atms[name] = {
-                    pay    = true,
-                    user   = fields.user or '',
-                    server = fields.server,
-                    amount = amount,
-                }
-                if open_atms[name].user == '' or (
-                        fields.server == lurkcoin.server_name and
-                        not lurkcoin.bank.user_exists(open_atms[name].user)
-                        ) then
-                    fields._err = 'That user does not exist!'
-                    lurkcoin.show_atm(name, 'pay', fields)
-                    return
-                end
+        )
+    elseif fields.payuser or fields.paysubmit or fields.payconfirm then
+        if fields.paysubmit then
+            local amount = tonumber(fields.amount)
+            if not amount or amount ~= amount or amount <= 0 then
+                fields._err = 'Invalid number!'
+                lurkcoin.show_atm(name, 'pay', fields)
+                return
+            elseif lurkcoin.bank.getbal(name) - amount < 0 then
+                fields._err = 'You cannot afford to do that!'
+                lurkcoin.show_atm(name, 'pay', fields)
+                return
+            elseif fields.server then
+                fields.server = fields.server:gsub('^ *(.-) *$', '%1')
             end
-            fields._err = nil
-            lurkcoin.show_atm(name, 'pay', fields)
-        elseif fields.home then
-            lurkcoin.show_atm(name, 'main')
-        elseif fields.quit then
-            open_atms[name] = nil
+
+            if fields.user then
+                fields.user = fields.user:gsub('^ *(.-) *$', '%1')
+            end
+
+            if not fields.server or fields.server == '' then
+                fields.server = lurkcoin.server_name
+            end
+
+            open_atms[name] = {
+                pay    = true,
+                user   = fields.user or '',
+                server = fields.server,
+                amount = amount,
+            }
+            if open_atms[name].user == '' or (
+                    fields.server == lurkcoin.server_name and
+                    not lurkcoin.bank.user_exists(open_atms[name].user)
+                    ) then
+                fields._err = 'That user does not exist!'
+                lurkcoin.show_atm(name, 'pay', fields)
+                return
+            end
         end
+        fields._err = nil
+        lurkcoin.show_atm(name, 'pay', fields)
+    elseif fields.home then
+        lurkcoin.show_atm(name, 'main')
+    elseif fields.quit then
+        open_atms[name] = nil
     end
 end)
 

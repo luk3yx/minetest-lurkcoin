@@ -31,11 +31,12 @@ if not minetest.get_modpath('cloaking') or not cloaking.hide_player then
     table.insert(minetest.registered_on_chat_messages, 1, function(name, msg)
         if msg:find('[\r\n]') then
             minetest.chat_send_player(name,
-                'Error sending message: https://xkcd.com/327')
+                'New lines are not permitted in chat messages')
             return true
         end
     end)
 
+    -- Also tweak minetest.log because of paranoia.
     local log = minetest.log
     function minetest.log(level, text)
         level = level:gsub('[\r\n]', '  ')
