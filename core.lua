@@ -10,7 +10,7 @@ lurkcoin.exchange_rate = 1
 
 -- Do not allow other mods to modify this, or they may be able to bypass mod
 --   security restrictions!
-local baseurl = 'https://nz.xeroxirc.net:7000/v2'
+local baseurl = 'https://us.xeroxirc.net:7000/v2'
 
 -- Get the username and API token
 lurkcoin.server_name = minetest.settings:get('lurkcoin.username')
