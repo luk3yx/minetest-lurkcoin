@@ -33,7 +33,7 @@ local function get_formspec(name, page, params)
         'label[0.5,1.75;Your balance: ' ..
             e(lurkcoin.bank.getbal(name)) .. 'cr.]' ..
         centre_label('1,0.55;6,0.5', 'Welcome to a ' .. lurkcoin.server_name ..
-            'ATM!') ..
+            ' ATM!') ..
         'label[0.5,2.25;Exchange rate: \194\1641.00 is equal to ' ..
             e(lurkcoin.exchange_rate) .. 'cr.]' ..
         centre_label('1.75,1.05;4.5,0.5', 'Your account: ' .. name) ..
