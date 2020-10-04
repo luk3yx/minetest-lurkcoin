@@ -22,7 +22,7 @@ minetest.register_node('lurkcoin:atm', {
         end
     end,
 
-    on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
+    on_rightclick = function(_, _, clicker, _, _)
         return lurkcoin.show_atm(clicker:get_player_name())
     end,
 })

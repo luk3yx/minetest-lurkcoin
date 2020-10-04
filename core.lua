@@ -4,28 +4,40 @@
 -- © 2019 by luk3yx
 --
 
-lurkcoin.version = 0
+-- Change this if you are hosting your own lurkcoin-core instance
+local baseurl = 'https://us.xeroxirc.net:7000'
+
+lurkcoin.version = 3
 lurkcoin.timeout = 10
 lurkcoin.exchange_rate = 1
 
--- Do not allow other mods to modify this, or they may be able to bypass mod
---   security restrictions!
-local baseurl = 'https://us.xeroxirc.net:7000/v2'
+local function log(level, text)
+    if text then
+        text = text:gsub('[\r\n]', '  ')
+    else
+        level, text = 'action', level:gsub('[\r\n]', '  ')
+    end
+    return minetest.log(level, '[lurkcoin] ' .. text)
+end
+
+local function logf(text, ...)
+    return log(text:format(...))
+end
 
 -- Get the username and API token
 lurkcoin.server_name = minetest.settings:get('lurkcoin.username')
-local token          = minetest.settings:get('lurkcoin.token')
+local token = minetest.settings:get('lurkcoin.token')
 
 -- Make sure lurkcoin.server_name exists
 if not lurkcoin.server_name then
     lurkcoin.server_name = '<unknown>'
-    minetest.log('warning', 'lurkcoin has no server name set!')
+    log('warning', 'lurkcoin.server_name is not set!')
 end
 
 -- Make sure the HTTP API exists
 local http = ...
 if not http then
-    minetest.log('warning', 'lurkcoin is not allowed to use the HTTP API! ' ..
+    log('warning', 'lurkcoin is not allowed to use the HTTP API! ' ..
         'Please add lurkcoin to secure.http_mods in minetest.conf.')
 end
 
@@ -34,177 +46,185 @@ end
 lurkcoin.user_agent = 'Minetest ' .. minetest.get_version().string ..
     ' (with lurkcoin mod v' .. tostring(lurkcoin.version) .. ')'
 
+-- Create the HTTP header list
+local headers
+if token then
+    local raw = lurkcoin.server_name:gsub(':', '_') .. ':' .. token
+    local auth = minetest.encode_base64(raw)
+    headers = {
+        -- minetest.encode_base64() doesn't add padding
+        'Authorization: Basic ' .. auth .. ('='):rep(4 - #auth % 4),
+        'Content-Type: application/json',
+        'X-Force-OK: true'
+    }
+end
+
+local function E(code, msg)
+    return {sucess = false, error = code, message = msg}
+end
+
 -- Download functions
 local function get(url, data, callback)
     -- To prevent race conditions, these callbacks wait until at least the next
     --  globalstep.
-    if not data then
-        data = {}
-    elseif not http then
-        minetest.after(0, callback, {
-            completed = true,
-            succeeded = false,
-            timeout   = true,
-            code      = 500,
-            data      = 'ERROR: The lurkcoin mod is not in secure.http_mods!'
-        })
+    if not http then
+        minetest.after(0, callback, E('ERR_CONNECTIONFAILED',
+            'The lurkcoin mod is not in secure.http_mods!'))
         return
-    elseif not lurkcoin.server_name or not token then
-        minetest.after(0, callback, {
-            completed = true,
-            succeeded = false,
-            timeout   = true,
-            code      = 401,
-            data      = 'ERROR: The lurkcoin mod does not have (correct) ' ..
-                'account credentials!'
-        })
+    elseif not headers then
+        minetest.after(0, callback, E('ERR_INVALIDLOGIN',
+            'The lurkcoin mod does not have (correct) credentials!'))
         return
     end
 
-    data.name  = lurkcoin.server_name
-    data.token = token
-
-    -- Minetest eats any non-200 code.
-    data.force_200 = '200'
-
     http.fetch({
-        url         = baseurl .. '/' .. url,
-        timeout     = lurkcoin.timeout,
-        post_data   = data,
-        user_agent  = lurkcoin.user_agent,
-    }, function(res)
-        if res.timeout then
-            minetest.log('warning', '[lurkcoin] Could not connect to lurkcoin!')
-            res.code = 500
-            res.data = 'ERROR: Could not connect to lurkcoin!'
-        elseif res.code == 401 or res.code == 418 then
-            minetest.log('warning', '[lurkcoin] Invalid username or API token!')
-            lurkcoin.server_name, token = '<unknown>', nil
-        elseif res.code == 200 and res.data:sub(1, 7) == 'ERROR: ' then
-            res.code = 501
+        url = baseurl .. '/v3/' .. url,
+        timeout = lurkcoin.timeout,
+        post_data = data and minetest.write_json(data),
+        user_agent = lurkcoin.user_agent,
+        extra_headers = headers
+    }, function(http_res)
+        local res
+        if http_res.timeout then
+            log('warning', 'Could not connect to lurkcoin!')
+            res = E('ERR_CONNECTIONFAILED', 'Could not connect to lurkcoin!')
+        else
+            res = minetest.parse_json(http_res.data)
+            if type(data) ~= 'table' then data = nil end
         end
 
-        local success, msg = pcall(callback, res)
-        if not success then
-            minetest.log('error', '[lurkcoin] Error: ' .. msg)
+        local ok, msg = pcall(callback, res or E('ERR_UNKNOWNERROR', '???'))
+        if not ok then
+            log('error', msg)
         end
     end)
 end
 
 -- Process incoming transactions.
-local handled_transactions = {}
+local acknowledged_transactions = {}
 
-local function _sync(res)
-    if res.code == 200 then
-        local data = minetest.parse_json(res.data)
+local function sync_callback(res)
+    if not res.success then return end
 
-        -- Update the exchange rate
-        assert(type(data.exchange_rate) == 'number')
-        assert(data.exchange_rate == data.exchange_rate)
-        lurkcoin.exchange_rate = data.exchange_rate
-
-        -- Process any unprocessed transactions
-        for _, t in ipairs(data.transactions) do
-            assert(type(t[3]) == 'number')
-            local id = minetest.serialize(t)
-            if not handled_transactions[id] then
-                handled_transactions[id] = true
-                core.log('action', '[lurkcoin] ' .. t[4])
-                lurkcoin.bank.add(t[2], t[3])
+    -- Process any unprocessed transactions
+    local reject = {}
+    for _, t in ipairs(res.result) do
+        local id = t.id
+        if not acknowledged_transactions[id] then
+            if lurkcoin.bank.user_exists(t.target) then
+                acknowledged_transactions[id] = true
+                logf('[%s] \194\164%s (sent %s, received %scr) - ' ..
+                    'Transaction from %q on %q to %q.',
+                    t.id, t.amount, t.sent_amount, t.received_amount, t.source,
+                    t.source_server, t.target)
+                lurkcoin.bank.add(t.target, t.received_amount)
+            else
+                logf('Rejecting transaction %s, user %q does not exist.',
+                    t.id, t.target)
+                table.insert(reject, t.id)
             end
         end
+    end
 
-        -- Tell lurkcoin to remove processed transactions
-        if #data.transactions > 0 then
-            get('remove_transactions', {count = tostring(#data.transactions)},
-            function(res)
-                if res.code == 200 then
-                    for _, t in ipairs(data.transactions) do
-                        handled_transactions[minetest.serialize(t)] = nil
-                    end
-                end
-            end)
+    -- Acknowledge transactions (if any)
+    if next(acknowledged_transactions) then
+        local ack = {}
+        for id, _ in pairs(acknowledged_transactions) do
+            table.insert(ack, id)
         end
+        get('acknowledge_transactions', {transactions = ack}, function(res2)
+            if res2.success then
+                for _, id in ipairs(ack) do
+                    acknowledged_transactions[id] = nil
+                end
+            end
+        end)
+    end
+
+    -- Reject transactions (if any)
+    if #reject > 0 then
+        get('reject_transactions', {transactions = reject}, function() end)
     end
 end
 
 -- Periodically sync with lurkcoin.
 local function sync()
-    get('get_transactions', {as_object = 'true'}, _sync)
+    get('pending_transactions', nil, sync_callback)
+
+    -- Only set lurkcoin.exchange_rate once
+    if not lurkcoin.exchange_rate then
+        get('exchange_rates', {source = lurkcoin.server_name, target = '',
+                amount = 1}, function(res)
+            if res.success and type(res.result) == 'number' then
+                lurkcoin.exchange_rate = res.result
+            end
+        end)
+    end
     minetest.after(300, sync)
 end
-
--- Start syncing once the game is loaded.
 minetest.after(0, sync)
 
 -- Get an exchange rate
-function lurkcoin.get_exchange_rate(amount, to, callback)
+function lurkcoin.get_exchange_rate(amount, target, callback)
     assert(callback)
-    amount = amount and tonumber(amount)
-    if not amount or amount ~= amount then return callback(nil) end
-
     get('exchange_rates', {
-        from    = lurkcoin.server_name,
-        to      = to or 'lurkcoin',
-        amount  = tostring(amount),
+        source = lurkcoin.server_name,
+        target = target or '',
+        amount = amount,
     }, function(res)
-        if res.code == 200 then
-            local amount = tonumber(res.data)
-            if amount == amount then return callback(amount, nil) end
-        end
-        local msg
-        if res.code == 502 then
-            msg = 'That server does not exist!'
+        if res.success then
+            callback(res.result, nil)
+        elseif res.error == 'ERR_TARGETSERVERNOTFOUND' then
+            callback(nil, 'That server does not exist!')
         else
-            msg = res.data
+            callback(nil, tostring(res.message))
         end
-        return callback(nil, tostring(msg))
     end)
 end
 
 -- Pay a user (cross-server)
-function lurkcoin.pay(from, to, server, amount, callback)
+function lurkcoin.pay(source, target, target_server, amount, callback)
     assert(type(amount) == 'number' and callback)
 
     -- Run lurkcoin.bank.pay() if this is not a cross-server transaction.
-    if not server or server == '' or server:lower() ==
-            lurkcoin.server_name:lower() then
-        return callback(lurkcoin.bank.pay(from, to, amount))
+    if not target_server or target_server == '' or
+            target_server:lower() == lurkcoin.server_name:lower() then
+        return callback(lurkcoin.bank.pay(source, target, amount))
     end
 
     -- Sanity checks
     amount = math.floor(amount * 100) / 100
-    if not lurkcoin.bank.user_exists(from) then
+    if not lurkcoin.bank.user_exists(source) then
         return callback(false, 'ERROR: The "from" user does not exist!')
     elseif amount ~= amount or amount <= 0 then
         return callback(false, 'ERROR: Invalid number!')
-    elseif lurkcoin.bank.getbal(from) - amount < 0 then
+    elseif amount > lurkcoin.bank.getbal(source) then
         return callback(false, 'ERROR: You cannot afford to do that!')
     end
 
-    if not lurkcoin.bank.subtract(from, amount, 'Transaction to "' .. to ..
-            '" on server "' .. server .. '".') then
+    if not lurkcoin.bank.subtract(source, amount, 'Transaction to "' ..
+            source .. '" on server "' .. target_server .. '".') then
         return callback(false, 'ERROR: Transaction failed!')
     end
 
     -- Send the request
     return get('pay', {
-        target = to,
-        server = server,
-        amount = tostring(amount),
-        local_currency = 'true'
+        source = source,
+        target = target,
+        target_server = target_server,
+        amount = amount,
+        local_currency = true
     }, function(res)
-        if res.code ~= 200 then
-            lurkcoin.bank.add(from, amount, 'Reverting failed transaction.')
-            if res.data == 'ERROR: You cannot afford to do that!' then
-                res.data = 'ERROR: This server cannot afford to do that!'
-            end
-        else
-            minetest.log('action', '[lurkcoin] User ' .. from .. ' paid ' ..
-                to .. ' (on server ' .. server .. ') ' .. tostring(amount) .. 'cr.')
+        if res.success then
+            logf('User %q paid %q (on server %q) %scr.', source, target,
+                target_server, amount)
+            return callback(true, 'Transaction sent!')
         end
-
-        return callback(res.code == 200, res.data or 'ERROR: Unknown error!')
+        lurkcoin.bank.add(source, amount, 'Reverting failed transaction.')
+        if res.code == 'ERR_CANNOTAFFORD' then
+            res.message = 'This server cannot afford to do that!'
+        end
+        return callback(false, 'ERROR: ' .. tostring(res.message))
     end)
 end
 

@@ -14,30 +14,34 @@ local formspecs = {}
 
 -- 0.4 compatibility
 lurkcoin.formspec_prepend = ''
-if minetest.get_modpath('default') and rawget(_G, 'default') and
-  default.gui_bg and default.gui_bg_img and default.gui_slots then
+if minetest.global_exists('default') and default.gui_bg and
+        default.gui_bg_img and default.gui_slots then
     lurkcoin.formspec_prepend = default.gui_bg .. default.gui_bg_img ..
         default.gui_slots
 end
 
--- The formspec code is based on something random I did in 2017(?) for
---  lurkcoinV1, formspecs are weird and I somehow got it right™ then.
+local function centre_label(pos, label)
+    return 'image_button[' .. pos .. ';blank.png;;' .. e(label) ..
+        ';true;false;]'
+end
+
+-- The formspec code is based on something I did in 2017(?) for lurkcoinV1,
+-- formspecs are weird and I somehow got it right then.
 local function get_formspec(name, page, params)
     -- The formspec template
-    local formspec = 'size[8,9;]' .. lurkcoin.formspec_prepend ..
+    local formspec = 'size[8,9]' .. lurkcoin.formspec_prepend ..
         'label[0.5,1.75;Your balance: ' ..
             e(lurkcoin.bank.getbal(name)) .. 'cr.]' ..
-        'image_button[2,0.55;4,0.5;default_dirt.png^\\[colorize:#343434;y;' ..
-            'Welcome to a ' .. e(lurkcoin.server_name) .. ' ATM!]'          ..
-        'label[0.5,2.25;Exchange rate: \194\1641.00 is equal to '           ..
-            e(lurkcoin.exchange_rate) .. 'cr.]'                             ..
-        'image_button[1.75,1.05;4.5,0.5;default_dirt.png^\\[colorize:'      ..
-            '#343434;y; Your account: ' .. e(name) .. ']'                   ..
-        'image[0.5,0.5;1,1;default_mese_crystal.png]'                       ..
+        centre_label('1,0.55;6,0.5', 'Welcome to a ' .. lurkcoin.server_name ..
+            'ATM!') ..
+        'label[0.5,2.25;Exchange rate: \194\1641.00 is equal to ' ..
+            e(lurkcoin.exchange_rate) .. 'cr.]' ..
+        centre_label('1.75,1.05;4.5,0.5', 'Your account: ' .. name) ..
+        'image[0.5,0.5;1,1;default_mese_crystal.png]' ..
         'image[6.5,0.5;1,1;default_mese_crystal.png]'
 
     -- Get the page formspec
-    local page = formspecs[page] or formspecs.main
+    page = formspecs[page] or formspecs.main
     if type(page) == 'string' then
         formspec = formspec .. page
     elseif type(page) == 'function' then
@@ -52,7 +56,7 @@ end
 local withdrawls = false
 
 -- Payment screen
-function formspecs.pay(name, fields, guessed_amount)
+function formspecs.pay(name, fields)
     fields = fields or {}
     local formspec =
         'field[0.8,3.5;7,1;user;User to pay;' .. e(fields.user or '') .. ']' ..
@@ -93,7 +97,7 @@ function formspecs.pay(name, fields, guessed_amount)
 
             exc = tostring(math.floor(exc * 100) / 100)
             formspec = formspec .. '\n' .. fields.amount .. 'cr is ' ..
-                'equal to \194\164' .. exc .. '.'
+                'equal to ' .. exc .. '.'
         end
         formspec = formspec .. ']' ..
             'button[0.5,8;3.5,1;payuser;Cancel]' ..
@@ -140,16 +144,20 @@ if minetest.get_modpath('currency') then
     }
 
     -- Remove non-registered notes
+    local remove = {}
     for id, note in pairs(withdrawls) do
         if not minetest.registered_items[note] then
-            withdrawls[id] = nil
+            table.insert(remove, id)
         end
+    end
+    for _, id in ipairs(remove) do
+        withdrawls[id] = nil
     end
     assert(#withdrawls > 0, 'The "currency" mod did not register any notes!')
 
     -- Create a detached inventory for depositing
     local inv = minetest.create_detached_inventory('lurkcoin:atm_deposit', {
-        on_put = function(inv, listname, index, stack, player)
+        on_put = function(inv, listname, _, stack, player)
             local name = stack:get_name()
             if name:sub(1, 17) == 'currency:minegeld' then
                 local m = name:sub(19)
@@ -157,6 +165,8 @@ if minetest.get_modpath('currency') then
                     if m:sub(1, 5) == 'cent_' then
                         m = tonumber(m:sub(6))
                         if m then m = m / 100 end
+                    elseif m == 'bundle' then
+                        m = 0.05 * 9
                     else
                         m = tonumber(m)
                     end
@@ -170,16 +180,16 @@ if minetest.get_modpath('currency') then
                     if not lurkcoin.bank.add(pname, m, 'Deposit') then
                         player:get_inventory():add_item('main', stack)
                     end
-                    core.log('action', 'Player ' .. pname .. ' deposits ' ..
-                        tostring(m) .. 'Mg (' .. stack:to_string() ..
-                        ') into a lurkcoin ATM.')
+                    minetest.log('action', 'Player ' .. pname ..
+                        ' deposits ' .. tostring(m) .. 'Mg (' ..
+                        stack:to_string() .. ') into a lurkcoin ATM.')
                 end
             end
             inv:set_list(listname, {})
             lurkcoin.show_atm(player:get_player_name(), 'deposit')
         end,
 
-        allow_put = function(inv, listname, index, stack, player)
+        allow_put = function(_, _, _, stack, _)
             local name = stack:get_name()
             if name:sub(1, 17) == 'currency:minegeld' then
                 return stack:get_count()
@@ -198,8 +208,7 @@ if minetest.get_modpath('currency') then
         'list[current_player;main;0,6.08;8,3;8]' ..
         'list[detached:lurkcoin:atm_deposit;lurkcoin;3.5,3;1,1;]' ..
         'listring[]' ..
-        'image_button[0,3;3.5,1;default_dirt.png^\\[colorize:#343434;' ..
-            'ignore;Deposit money here →]' ..
+        centre_label('0,3;3.5,1', 'Deposit money here →') ..
         'button[5.25,3;2,1;home;Finish]'
 else
     -- When there is no physical currency, the only thing you can do is pay
@@ -208,19 +217,17 @@ else
 end
 
 -- "Transaction accepted" screen
-function formspecs.success(name, text)
+function formspecs.success(_, text)
     return 'image[2.1,3;4.5,4.5;lurkcoin_success.png]' ..
-        'image_button[1,7;6,1;default_dirt.png^\\[colorize:#343434;' ..
-            'ignore;' .. e(text or 'Transaction sent!') .. ']' ..
+        centre_label('1,7;6,1', text or 'Transaction sent!') ..
         'button[0.5,8;3.5,1;home;Go back]' ..
         'button_exit[4,8;3.5,1;quit;Quit]'
 end
 
 -- "Transaction failed" screen
-function formspecs.error(name, text)
+function formspecs.error(_, text)
     return 'image[2.1,3;4.5,4.5;lurkcoin_error.png]' ..
-        'image_button[1,7;6,1;default_dirt.png^\\[colorize:#343434;' ..
-            'ignore;' .. e(text or 'An error has occurred!') .. ']' ..
+        centre_label('1,7;6,1', text or 'An error has occurred!') ..
         'button[0.5,8;3.5,1;home;Go back]' ..
         'button_exit[4,8;3.5,1;quit;Quit]'
 end
@@ -228,10 +235,8 @@ end
 -- Processing screen
 formspecs.processing =
     'image[2.1,3;4.5,4.5;lurkcoin_processing.png]' ..
-    'image_button[1,7;6,1;default_dirt.png^\\[colorize:#343434;' ..
-    'ignore;Processing your transaction...]' ..
-    'image_button[1,8;6,1;default_dirt.png^\\[colorize:#343434;' ..
-    'ignore;This should only take a few seconds.]'
+    centre_label('1,7;6,1', 'Processing your transaction...') ..
+    centre_label('1,8;6,1', 'This should only take a few seconds.')
 
 -- A wrapper function
 function lurkcoin.show_atm(name, page, params)
@@ -267,10 +272,12 @@ minetest.register_on_player_receive_fields(function(player, formname, raw)
                     'ERROR: You cannot afford to do that!')
             end
 
-            local note = false
+            local note
             for id, item in pairs(withdrawls) do
+                -- HACK: Multiply both amount and id by 1000 to avoid
+                -- floating-point bugs.
                 if (not note or id > note) and
-                        math.floor(amount / id) * id == amount then
+                        (amount * 1000) % (id * 1000) == 0 then
                     local def = minetest.registered_items[item]
                     if def and amount / id <= (def.stack_max or 99) then
                         note = id
@@ -286,7 +293,7 @@ minetest.register_on_player_receive_fields(function(player, formname, raw)
 
             local stack = ItemStack({
                 name  = withdrawls[note],
-                count = amount / note,
+                count = (amount * 1000) / (note * 1000),
             })
             local inv = player:get_inventory()
             if not inv:room_for_item('main', stack) then
@@ -372,14 +379,5 @@ minetest.register_on_player_receive_fields(function(player, formname, raw)
 end)
 
 minetest.register_on_leaveplayer(function(player)
-    -- TODO: I forgot what one register_on_leaveplayer uses and am too lazy to
-    --  check.
-    local name
-    if type(player) == 'string' then
-        name = player
-    else
-        name = player:get_player_name()
-    end
-
-    open_atms[name] = nil
+    open_atms[player:get_player_name()] = nil
 end)
