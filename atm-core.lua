@@ -12,17 +12,26 @@ end
 
 local formspecs = {}
 
+lurkcoin.formspec_prepend = 'style_type[image_button;bgimg=;bgimg_pressed=]'
+
 -- 0.4 compatibility
-lurkcoin.formspec_prepend = ''
 if minetest.global_exists('default') and default.gui_bg and
         default.gui_bg_img and default.gui_slots then
     lurkcoin.formspec_prepend = default.gui_bg .. default.gui_bg_img ..
-        default.gui_slots
+        default.gui_slots .. lurkcoin.formspec_prepend
 end
 
 local function centre_label(pos, label)
     return 'image_button[' .. pos .. ';blank.png;;' .. e(label) ..
         ';true;false;]'
+end
+
+local formspec_img = 'blank.png'
+if minetest.registered_items['default:mese_crystal'] then
+    formspec_img = 'default_mese_crystal.png'
+elseif minetest.registered_items['default:gold_ingot'] or
+        minetest.registered_items['mcl_core:gold_ingot'] then
+    formspec_img = 'default_gold_ingot.png'
 end
 
 -- The formspec code is based on something I did in 2017(?) for lurkcoinV1,
@@ -37,8 +46,8 @@ local function get_formspec(name, page, params)
         'label[0.5,2.25;Exchange rate: \194\1641.00 is equal to ' ..
             e(lurkcoin.exchange_rate) .. 'cr.]' ..
         centre_label('1.75,1.05;4.5,0.5', 'Your account: ' .. name) ..
-        'image[0.5,0.5;1,1;default_mese_crystal.png]' ..
-        'image[6.5,0.5;1,1;default_mese_crystal.png]'
+        'image[0.5,0.5;1,1;' .. formspec_img .. ']' ..
+        'image[6.5,0.5;1,1;' .. formspec_img .. ']'
 
     -- Get the page formspec
     page = formspecs[page] or formspecs.main
