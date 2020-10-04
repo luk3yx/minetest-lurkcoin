@@ -148,15 +148,17 @@ local function sync_callback(res)
 end
 
 -- Periodically sync with lurkcoin.
+local exchange_rate_set
 local function sync()
     get('pending_transactions', nil, sync_callback)
 
     -- Only set lurkcoin.exchange_rate once
-    if not lurkcoin.exchange_rate then
+    if not exchange_rate_set then
         get('exchange_rates', {source = lurkcoin.server_name, target = '',
                 amount = 1}, function(res)
             if res.success and type(res.result) == 'number' then
                 lurkcoin.exchange_rate = res.result
+                exchange_rate_set = true
             end
         end)
     end
