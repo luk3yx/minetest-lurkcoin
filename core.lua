@@ -154,7 +154,7 @@ local function sync()
 
     -- Only set lurkcoin.exchange_rate once
     if not exchange_rate_set then
-        get('exchange_rates', {source = lurkcoin.server_name, target = '',
+        get('exchange_rates', {source = '', target = lurkcoin.server_name,
                 amount = 1}, function(res)
             if res.success and type(res.result) == 'number' then
                 lurkcoin.exchange_rate = res.result
