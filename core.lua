@@ -53,7 +53,7 @@ if token then
     local auth = minetest.encode_base64(raw)
     headers = {
         -- minetest.encode_base64() doesn't add padding
-        'Authorization: Basic ' .. auth .. ('='):rep(4 - #auth % 4),
+        'Authorization: Basic ' .. auth .. ('='):rep((4 - #auth) % 4),
         'Content-Type: application/json',
         'X-Force-OK: true'
     }
