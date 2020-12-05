@@ -223,7 +223,7 @@ function lurkcoin.pay(source, target, target_server, amount, callback)
             return callback(true, 'Transaction sent!')
         end
         lurkcoin.bank.add(source, amount, 'Reverting failed transaction.')
-        if res.code == 'ERR_CANNOTAFFORD' then
+        if res.error == 'ERR_CANNOTAFFORD' then
             res.message = 'This server cannot afford to do that!'
         end
         return callback(false, 'ERROR: ' .. tostring(res.message))
