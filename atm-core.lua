@@ -213,12 +213,24 @@ if minetest.get_modpath('currency') then
 
     -- Depositing
     formspecs.deposit =
-        'list[current_player;main;0,4.85;8,1;]'  ..
+        'list[current_player;main;0,4.85;8,1;]' ..
         'list[current_player;main;0,6.08;8,3;8]' ..
         'list[detached:lurkcoin:atm_deposit;lurkcoin;3.5,3;1,1;]' ..
         'listring[]' ..
         centre_label('0,3;3.5,1', 'Deposit money here →') ..
         'button[5.25,3;2,1;home;Finish]'
+
+    if minetest.global_exists('dreambuilder_theme') and
+            dreambuilder_theme.make_inv_img_grid_v1 and
+            dreambuilder_theme.single_slot_v1 then
+        formspecs.deposit =
+            'listcolors[#0000;' .. (dreambuilder_theme.listcolor_slot_bg_hover
+                or '#0000') .. ';#0000]' ..
+            dreambuilder_theme.single_slot_v1(3.5, 3, false) ..
+            dreambuilder_theme.make_inv_img_grid_v1(0, 4.85, 8, 1, true) ..
+            dreambuilder_theme.make_inv_img_grid_v1(0, 6.08, 8, 3, false) ..
+            formspecs.deposit
+    end
 else
     -- When there is no physical currency, the only thing you can do is pay
     --  others.
