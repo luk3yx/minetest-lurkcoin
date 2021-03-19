@@ -6,6 +6,7 @@ globals = {
     'atm',
     'accounts',
     'default',
+    'dreambuilder_theme',
     'economy',
     'lurkcoin',
     'minetest',
