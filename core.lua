@@ -5,7 +5,7 @@
 --
 
 -- Change this if you are hosting your own lurkcoin-core instance
-local baseurl = 'https://us.xeroxirc.net:7000'
+local baseurl = 'https://lurkcoin.minetest.land'
 
 lurkcoin.version = 3
 lurkcoin.timeout = 10
