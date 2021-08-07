@@ -35,7 +35,7 @@ The following lurkcoin-specific functions and variables exist:
  - `lurkcoin.get_exchange_rate(amount, to, callback)`: Get an exchange rate
     from this server.
  - `lurkcoin.pay(from, to, server, amount, callback)`: Makes `from` pay someone
-    `amount`cr, and calls `callback` on success/faliure. `callback` should have two
+    `amount`Mg, and calls `callback` on success/faliure. `callback` should have two
     parameters, `success` and `msg`.
  - `lurkcoin.server_name`: The account name used to log into lurkcoin.
 
@@ -59,7 +59,7 @@ The below functions (except `getbal` and `pay`) return `true` on success and
  - `lurkcoin.bank.subtract(name, amount, reason)`: Subtracts `amount` from
     `name`'s balance. Will return false if `amount` is below `0`.
  - `lurkcoin.bank.pay(from, to, amount)`: Makes user `from` pay a user
-    `amount`cr. This will return two values, `success` (true/false) and
+    `amount` Mg. This will return two values, `success` (true/false) and
     `message` (a string).
 
 #### Changing the currently used bank
@@ -77,4 +77,4 @@ implemented (except `pay`) must have the same return values as described in this
 documentation, and are entirely optional (they will be automatically created if
 they are not included). Any missing functions are "filled in" automatically.
 
-*By default, payments are rounded down to the nearest 0.01cr.*
+*By default, payments are rounded down to the nearest 0.01 Mg.*

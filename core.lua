@@ -113,7 +113,7 @@ local function sync_callback(res)
         if not acknowledged_transactions[id] then
             if lurkcoin.bank.user_exists(t.target) then
                 acknowledged_transactions[id] = true
-                logf('[%s] \194\164%s (sent %s, received %scr) - ' ..
+                logf('[%s] \194\164%s (sent %s, received %sMg) - ' ..
                     'Transaction from %q on %q to %q.',
                     t.id, t.amount, t.sent_amount, t.received_amount, t.source,
                     t.source_server, t.target)
@@ -218,7 +218,7 @@ function lurkcoin.pay(source, target, target_server, amount, callback)
         local_currency = true
     }, function(res)
         if res.success then
-            logf('User %q paid %q (on server %q) %scr.', source, target,
+            logf('User %q paid %q (on server %q) %sMg.', source, target,
                 target_server, amount)
             return callback(true, 'Transaction sent!')
         end

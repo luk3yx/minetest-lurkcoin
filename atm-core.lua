@@ -40,11 +40,11 @@ local function get_formspec(name, page, params)
     -- The formspec template
     local formspec = 'size[8,9]' .. lurkcoin.formspec_prepend ..
         'label[0.5,1.75;Your balance: ' ..
-            e(lurkcoin.bank.getbal(name)) .. 'cr.]' ..
+            e(lurkcoin.bank.getbal(name)) .. 'Mg.]' ..
         centre_label('1,0.55;6,0.5', 'Welcome to a ' .. lurkcoin.server_name ..
             ' ATM!') ..
         'label[0.5,2.25;Exchange rate: \194\1641.00 is equal to ' ..
-            e(lurkcoin.exchange_rate) .. 'cr.]' ..
+            e(lurkcoin.exchange_rate) .. 'Mg.]' ..
         centre_label('1.75,1.05;4.5,0.5', 'Your account: ' .. name) ..
         'image[0.5,0.5;1,1;' .. formspec_img .. ']' ..
         'image[6.5,0.5;1,1;' .. formspec_img .. ']'
@@ -73,7 +73,7 @@ function formspecs.pay(name, fields)
         'field[0.8,4.8;7,1;server;Server the user is on;' ..
             e(fields.server or lurkcoin.server_name) .. ']' ..
         'field_close_on_enter[server;false]' ..
-        'field[0.8,6.15;7,1;amount;Amount to pay (in cr);' ..
+        'field[0.8,6.15;7,1;amount;Amount to pay (in Mg);' ..
             e(fields.amount or '5.00') .. ']' ..
         'field_close_on_enter[amount;false]'
 
@@ -100,12 +100,12 @@ function formspecs.pay(name, fields)
                     fields._exchange_rate = data
                     return lurkcoin.show_atm(name, 'pay', fields)
                 end)
-                return formspec .. '\n' .. fields.amount .. 'cr is equal to' ..
+                return formspec .. '\n' .. fields.amount .. 'Mg is equal to' ..
                     ' ...\n\n(Calculating...)]'
             end
 
             exc = tostring(math.floor(exc * 100) / 100)
-            formspec = formspec .. '\n' .. fields.amount .. 'cr is ' ..
+            formspec = formspec .. '\n' .. fields.amount .. 'Mg is ' ..
                 'equal to ' .. exc .. '.'
         end
         formspec = formspec .. ']' ..
